@@ -1,4 +1,4 @@
-name: Threat Intel 24/7 Automation
+name: Pluffy Intel 24/7 Automation
 
 on:
   schedule:
@@ -27,4 +27,4 @@ jobs:
         env:
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
           RSS_FEEDS: ${{ secrets.RSS_FEEDS }}
-        run: python threat_intel_bot.py
+        run: python pluffy-intel.py
