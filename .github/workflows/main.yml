@@ -1,4 +1,4 @@
-name: Threat Intel 24/7 Automation
+name: Pluffy Intel 24/7 Automation
 
 on:
   schedule:
