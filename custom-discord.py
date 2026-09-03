@@ -1,39 +1,67 @@
 #!/usr/bin/env python3
-import sys
+import argparse
 import json
+import sys
+
 import requests
 
-# Read arguments from the command line
-# Wazuh passes: sys.argv[1] = alert file path, sys.argv[3] = hook URL
-alert_file_path = sys.argv[1]
-hook_url = sys.argv[3] if len(sys.argv) > 3 else sys.argv[2]
 
-# Load JSON data from the alert file safely
-# Read the last line to prevent JSONDecodeError caused by Wazuh's NDJSON format
-try:
-    with open(alert_file_path, 'r') as f:
-        lines = f.readlines()
-        last_line = lines[-1].strip() if lines else "{}"
-        alert_json = json.loads(last_line)
-except Exception as e:
-    sys.exit(1)
+def parse_args():
+    parser = argparse.ArgumentParser(description="Send a Wazuh alert to a Discord webhook.")
+    parser.add_argument("alert_file", nargs="?", help="Path to the alert JSON file")
+    parser.add_argument("hook_url", nargs="?", help="Discord webhook URL")
+    parser.add_argument("--alert-file", dest="alert_file_flag", help="Path to the alert JSON file")
+    parser.add_argument("--hook-url", dest="hook_url_flag", help="Discord webhook URL")
+    return parser.parse_args()
 
-# Get details from the alert JSON with safe fallbacks
-alert_level = alert_json.get('rule', {}).get('level', 0)
-rule_desc = alert_json.get('rule', {}).get('description', 'No description')
-agent_name = alert_json.get('agent', {}).get('name', 'Unknown Agent')
-rule_id = alert_json.get('rule', {}).get('id', 'N/A')
 
-# Format message to send to Discord
-discord_msg = {
-    "content": f"🚨 **WAZUH ALERT DETECTED** 🚨\n"
-               f"**Agent/Host:** {agent_name}\n"
-               f"**Rule ID:** {rule_id} (Level {alert_level})\n"
-               f"**Description:** {rule_desc}"
-}
+def load_alert(alert_file_path):
+    try:
+        with open(alert_file_path, "r", encoding="utf-8") as f:
+            lines = [line.strip() for line in f if line.strip()]
+        if not lines:
+            return {}
+        return json.loads(lines[-1])
+    except (OSError, ValueError, json.JSONDecodeError):
+        raise ValueError(f"Unable to read/parse alert file: {alert_file_path}")
 
-# Post the message to the Discord webhook
-try:
-    requests.post(hook_url, json=discord_msg, timeout=10)
-except Exception as e:
-    sys.exit(1)
+
+def main():
+    args = parse_args()
+    alert_file_path = args.alert_file_flag or args.alert_file
+    hook_url = args.hook_url_flag or args.hook_url
+
+    if not alert_file_path or not hook_url:
+        print("Usage: custom-discord.py <alert_file> <hook_url>", file=sys.stderr)
+        sys.exit(2)
+
+    try:
+        alert_json = load_alert(alert_file_path)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        sys.exit(1)
+
+    alert_level = alert_json.get("rule", {}).get("level", 0)
+    rule_desc = alert_json.get("rule", {}).get("description", "No description")
+    agent_name = alert_json.get("agent", {}).get("name", "Unknown Agent")
+    rule_id = alert_json.get("rule", {}).get("id", "N/A")
+
+    discord_msg = {
+        "content": (
+            "🚨 **WAZUH ALERT DETECTED** 🚨\n"
+            f"**Agent/Host:** {agent_name}\n"
+            f"**Rule ID:** {rule_id} (Level {alert_level})\n"
+            f"**Description:** {rule_desc}"
+        )
+    }
+
+    try:
+        response = requests.post(hook_url, json=discord_msg, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        print(f"Failed to send Discord alert: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
