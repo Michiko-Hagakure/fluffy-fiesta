@@ -1,9 +1,9 @@
-name: Pluffy Intel 24/7 Automation
+name: Threat Intel 24/7 Automation
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
-  workflow_dispatch: 
+    - cron: '0 */6 * * *' # Runs every 6 hours
+  workflow_dispatch:
 
 jobs:
   build-and-run:
