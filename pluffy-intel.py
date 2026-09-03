@@ -1,5 +1,6 @@
 import json
 import os
+import random
 import time
 
 import feedparser
@@ -50,6 +51,24 @@ def parse_feeds():
 RSS_FEEDS = parse_feeds()
 
 
+def parse_gif_memes():
+    raw_value = os.getenv("DISCORD_GIF_MEMES", "")
+    if not raw_value.strip():
+        return []
+
+    try:
+        parsed = json.loads(raw_value)
+        if isinstance(parsed, list):
+            return [url.strip() for url in parsed if isinstance(url, str) and url.strip()]
+    except (TypeError, ValueError, json.JSONDecodeError):
+        pass
+
+    return [url.strip() for url in raw_value.replace(",", "\n").splitlines() if url.strip()]
+
+
+GIF_MEMES = parse_gif_memes()
+
+
 def load_posted():
     if os.path.exists(DB_PATH):
         try:
@@ -87,6 +106,9 @@ def send_alert(site, title, link, summary="Click link to read full article."):
             }
         ],
     }
+
+    if GIF_MEMES:
+        payload["embeds"][0]["image"] = {"url": random.choice(GIF_MEMES)}
 
     response = requests.post(WEBHOOK_URL, json=payload, timeout=10)
     response.raise_for_status()
