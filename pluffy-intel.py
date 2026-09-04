@@ -95,7 +95,6 @@ def send_alert(site, title, link, summary="Click link to read full article."):
     clean_summary = summary[:250] + "..." if summary and len(summary) > 250 else (summary or "Click link to read full article.")
     payload = {
         "username": os.getenv("DISCORD_USERNAME", "Pluffy Intel"),
-        "avatar_url": os.getenv("DISCORD_AVATAR_URL", "https://tenor.com/view/speaky-speaki-trichal-chibi-go-reborn-gif-15096169813032109896"),
         "embeds": [
             {
                 "title": title,
