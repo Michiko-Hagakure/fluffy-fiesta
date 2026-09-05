@@ -14,9 +14,15 @@ WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 DB_PATH = os.getenv("DB_PATH", "pluffy_intel_posted.json")
 
 DEFAULT_FEEDS = {
-    "CyberWire": "https://www.cyberwire.com/rss",
-    "BleepingComputer": "https://www.bleepingcomputer.com/feed/",
     "The Hacker News": "https://thehackernews.com/feeds/posts/default",
+    "BleepingComputer": "https://www.bleepingcomputer.com/feed/",
+    "Krebs on Security": "https://krebsonsecurity.com/feed/",
+    "Dark Reading": "https://www.darkreading.com/rss.xml",
+    "SecurityWeek": "https://www.securityweek.com/feed/",
+    "The Record": "https://therecord.media/feed",
+    "Cisco Talos": "https://blog.talosintelligence.com/rss/",
+    "SANS ISC": "https://isc.sans.edu/rssfeed_full.xml",
+    "CISA Advisories": "https://www.cisa.gov/cybersecurity-advisories/all.xml",
 }
 
 
@@ -51,22 +57,41 @@ def parse_feeds():
 RSS_FEEDS = parse_feeds()
 
 
+DEFAULT_GIF_MEMES = [
+    "https://media.giphy.com/media/26ufnwz3wDUli7GU0/giphy.gif",
+    "https://media.giphy.com/media/3o7TKMt1VVNkHV2PaE/giphy.gif",
+    "https://media.giphy.com/media/xT9IgG50Fb7Mi0prBC/giphy.gif",
+]
+
+
 def parse_gif_memes():
     raw_value = os.getenv("DISCORD_GIF_MEMES", "")
     if not raw_value.strip():
-        return []
+        return DEFAULT_GIF_MEMES
 
     try:
         parsed = json.loads(raw_value)
         if isinstance(parsed, list):
-            return [url.strip() for url in parsed if isinstance(url, str) and url.strip()]
+            memes = [url.strip() for url in parsed if isinstance(url, str) and url.strip()]
+            return memes or DEFAULT_GIF_MEMES
     except (TypeError, ValueError, json.JSONDecodeError):
         pass
 
-    return [url.strip() for url in raw_value.replace(",", "\n").splitlines() if url.strip()]
+    memes = [url.strip() for url in raw_value.replace(",", "\n").splitlines() if url.strip()]
+    return memes or DEFAULT_GIF_MEMES
 
 
 GIF_MEMES = parse_gif_memes()
+LAST_GIF_URL = None
+
+
+def choose_gif():
+    global LAST_GIF_URL
+
+    available_gifs = [gif_url for gif_url in GIF_MEMES if gif_url != LAST_GIF_URL]
+    selected_gif = random.choice(available_gifs or GIF_MEMES)
+    LAST_GIF_URL = selected_gif
+    return selected_gif
 
 
 def load_posted():
@@ -107,7 +132,7 @@ def send_alert(site, title, link, summary="Click link to read full article."):
     }
 
     if GIF_MEMES:
-        payload["embeds"][0]["image"] = {"url": random.choice(GIF_MEMES)}
+        payload["embeds"][0]["image"] = {"url": choose_gif()}
 
     response = requests.post(WEBHOOK_URL, json=payload, timeout=10)
     response.raise_for_status()
