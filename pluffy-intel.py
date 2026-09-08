@@ -82,7 +82,18 @@ def parse_gif_memes():
 
 
 GIF_MEMES = parse_gif_memes()
-LAST_GIF_URL = None
+GIF_STATE_PATH = os.getenv("DISCORD_GIF_STATE_PATH", ".last_gif_url")
+
+
+def load_last_gif():
+    try:
+        with open(GIF_STATE_PATH, "r", encoding="utf-8") as f:
+            return f.read().strip() or None
+    except OSError:
+        return None
+
+
+LAST_GIF_URL = load_last_gif()
 
 
 def choose_gif():
@@ -91,6 +102,11 @@ def choose_gif():
     available_gifs = [gif_url for gif_url in GIF_MEMES if gif_url != LAST_GIF_URL]
     selected_gif = random.choice(available_gifs or GIF_MEMES)
     LAST_GIF_URL = selected_gif
+    try:
+        with open(GIF_STATE_PATH, "w", encoding="utf-8") as f:
+            f.write(selected_gif)
+    except OSError:
+        pass
     return selected_gif
 
 
