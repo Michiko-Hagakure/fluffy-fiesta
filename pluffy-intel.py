@@ -154,11 +154,36 @@ def send_alert(site, title, link, summary="Click link to read full article."):
     response.raise_for_status()
 
 
+def fetch_feed(site, url):
+    try:
+        response = requests.get(
+            url,
+            headers={"User-Agent": "PluffyIntel/1.0 (+https://github.com/)"},
+            timeout=20,
+        )
+        response.raise_for_status()
+        feed = feedparser.parse(response.content)
+    except (requests.RequestException, ValueError) as exc:
+        print(f"[-] {site}: unable to fetch feed: {exc}", flush=True)
+        return None
+
+    if getattr(feed, "bozo", False) and not feed.entries:
+        error = getattr(feed, "bozo_exception", "invalid feed")
+        print(f"[-] {site}: unable to parse feed: {error}", flush=True)
+        return None
+
+    print(f"[+] {site}: {len(feed.entries)} entries fetched", flush=True)
+    return feed
+
+
 def run():
     posted = load_posted()
 
     for site, url in RSS_FEEDS.items():
-        feed = feedparser.parse(url)
+        feed = fetch_feed(site, url)
+        if feed is None:
+            continue
+
         for entry in feed.entries[:2]:
             link = getattr(entry, "link", None)
             if not link or link in posted:
