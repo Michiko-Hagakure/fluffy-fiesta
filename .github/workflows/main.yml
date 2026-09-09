@@ -2,7 +2,7 @@ name: Pluffy Pluffy 24/7 Automation
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # Runs every 6 hours
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
