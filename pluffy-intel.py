@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-DB_PATH = os.getenv("DB_PATH", "pluffy_intel_posted.json")
+DB_PATH = os.getenv("DB_PATH", "posted_articles.json")
 
 DEFAULT_FEEDS = {
     "The Hacker News": "https://thehackernews.com/feeds/posts/default",
